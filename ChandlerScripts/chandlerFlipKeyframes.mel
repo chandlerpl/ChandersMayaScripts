@@ -1,0 +1,129 @@
+global proc applyButtonPush()
+{
+	string $obj[]= `ls -sl`;
+	
+	if(size($obj) == 0) {
+	    print "Nothing Selected.\n";
+	    return;
+	}
+	
+	if(size($obj) > 1) {
+	    print "Please select one control.\n";
+	    return;
+	}
+	
+	string $cube = "cube";
+	string $secondCube = "secondCube";
+	
+	string $descendents[] = `listRelatives -ad $obj[0]`;
+	appendStringArray($obj, $descendents, size($descendents));
+	
+    for ($control in $obj)
+    {
+		string $strings[] = stringToStringArray($control, "_");
+		if($strings[size($strings)-1] == "Offset" || `objectType $control` == "nurbsCurve") {
+			print "Hit.\n";
+			continue;
+		}
+		
+		string $otherControl = substituteAllString($control, `textField -q -text SearchField`, `textField -q -text ReplaceField`);
+	
+		polyCube -w 1 -h 1 -d 1 -sx 1 -sy 1 -sz 1 -ax 0 1 0 -cuv 4 -ch 1 -n $cube;
+		parent $cube $control;
+		move -a -ls 0 0 0 $cube;
+		rotate -a -os 0 0 0 $cube;
+		scale -a -os 1 1 1 $cube;
+		parent -world $cube;
+		polyMirrorFace -cutMesh 0 -axis 0 -axisDirection 1 -mergeMode 0 -mergeThresholdType 0 -mergeThreshold 0.001 -mirrorAxis 2 -mirrorPosition 0 -smoothingAngle 30 -flipUVs 0 -ch 1 $cube;
+		polySeparate -ch 1 $cube;
+		delete -ch $cube;
+		
+		polyCube -w 1 -h 1 -d 1 -sx 1 -sy 1 -sz 1 -ax 0 1 0 -cuv 4 -ch 1 -n $secondCube;
+		parent $secondCube $otherControl;
+		move -a -ls 0 0 0 $secondCube;
+		rotate -a -os 0 0 0 $secondCube;
+		scale -a -os 1 1 1 $secondCube;
+		parent -world $secondCube;
+		polyMirrorFace -cutMesh 0 -axis 0 -axisDirection 1 -mergeMode 0 -mergeThresholdType 0 -mergeThreshold 0.001 -mirrorAxis 2 -mirrorPosition 0 -smoothingAngle 30 -flipUVs 0 -ch 1 $secondCube;
+		polySeparate -ch 1 $secondCube;
+		delete -ch $secondCube;
+		
+		string $children[] = `listRelatives -c $cube`;
+		select -r $children[1];
+		xform -ws -p true -cp;
+		float $pos[] = `xform -q -rp -ws $children[1]`;
+		float $rot[] = `xform -q -ro -ws $children[1]`;
+		
+		string $children2[] = `listRelatives -c $secondCube`;
+		select -r $children2[1];
+		xform -ws -p true -cp;
+		float $pos2[] = `xform -q -rp -ws $children2[1]`;
+		float $rot2[] = `xform -q -ro -ws $children2[1]`;
+		
+		string $cons[] = `listConnections $control`;
+		int $val = 4;
+		for ($cont in $cons)
+		{
+			string $conStr[] = stringToStringArray($cont, "_");
+			if($conStr[size($conStr)-1] == "parentConstraint1") {
+				$val = 0;
+				break;
+			} else if($conStr[size($conStr)-1] == "orientConstraint1") {
+				$val = 1;
+				break;
+			} else if($conStr[size($conStr)-1] == "pointConstaint1") {
+				$val = 2;
+				break;
+			} else if($conStr[size($conStr)-1] == "poleVectorConstraint1") {
+				$val = 0;
+				break;
+			}
+		}
+		
+		if($val == 0)
+		{
+			move -a -ws $pos[0] $pos[1] $pos[2] $otherControl;
+			rotate -a -ws $rot[0] $rot[1] $rot[2] $otherControl;
+			move -a -ws $pos2[0] $pos2[1] $pos2[2] $control;
+			rotate -a -ws $rot2[0] $rot2[1] $rot2[2] $control;
+		} else if($val == 1)
+		{
+			rotate -a -ws $rot[0] $rot[1] $rot[2] $otherControl;
+			rotate -a -ws $rot2[0] $rot2[1] $rot2[2] $control;
+		} else if($val == 2)
+		{
+			move -a -ws $pos[0] $pos[1] $pos[2] $otherControl;
+			move -a -ws $pos2[0] $pos2[1] $pos2[2] $control;
+		}
+		
+		delete($cube);
+		delete($secondCube);
+    }
+	select -r $obj;
+	setKeyframe;
+}
+
+global proc mainWindow() {
+	if (`window -exists chandlerAnimationMirror`) deleteUI chandlerAnimationMirror;
+	//if (`windowPref -exists chandlerAnimationMirror`) windowPref -remove chandlerAnimationMirror;
+	window -title "Chandler Control Rig" -widthHeight 400 551 chandlerAnimationMirror;
+		 columnLayout -adjustableColumn true;
+			   
+				text -label "Text to replace when finding mirroring control." -al "right";
+			    rowLayout -numberOfColumns 2 -cw2 100 100;
+					text -label "Search:" -al "right";
+					textField -w 250 -text "R_" SearchField;
+			   setParent ..;
+			  
+				rowLayout -numberOfColumns 2 -cw2 100 100;
+					text -label "Replace:" -al "center";
+					textField -w 250 -text "L_" ReplaceField;
+				setParent ..;
+			  
+			  separator -height 10 -style "out";
+			  separator -height 10 -style "in";
+			  
+			  button -label "Apply" -command "applyButtonPush()";
+		 setParent ..;
+	showWindow chandlerAnimationMirror;
+}

@@ -1,0 +1,37 @@
+//----------------------------------------------------------------------------
+// chandlerMenu.mel - MEL Script
+//----------------------------------------------------------------------------
+// Copyright ©2018 Chandler K. Pope-Lewis All Rights Reserved
+//
+// DESCRIPTION:	
+//	A new tools interface developed Chandler K. Pope-Lewis, currently only
+//	featuring a script that helps to streamline Control Rigging.
+//
+//----------------------------------------------------------------------------
+
+global string $gMainWindow; 
+  
+if (`menu -q -exists chandlerMenu`)
+    {
+    menu -e -dai chandlerMenu;
+    }
+else
+    {
+	setParent $gMainWindow ;
+    menu -l "CScripts" -p MayaWindow -to true chandlerMenu ;
+    }
+
+setParent -menu chandlerMenu ;
+
+
+//menuItem -l "Tools" -sm true -to true ;
+    menuItem -l ("Control Rigging...") -c ("source \"ChandlerScripts/chandlerControlRig.mel\"; mainWindow(); ") -ann ("Helpful tips for control rigging.");
+    menuItem -l ("Animation Mirror...") -c ("source \"ChandlerScripts/chandlerFlipKeyframes.mel\"; mainWindow(); ") -ann ("Helpful tips for control rigging.");
+    //setParent -menu ".." ;
+
+
+menuItem -divider true ;
+menuItem -l ("About") -c ("source \"ChandlerScripts/chandlerAbout.mel\"; mainWindow(); ") -ann ("About Page.");
+menuItem -l "Re-Build Menu" -c ("rehash; source \"ChandlerScripts/chandlerMenu.mel\" ;") -ann ("Re-Creates this menu, and does a rehash to pick up any new scripts.") ;
+
+

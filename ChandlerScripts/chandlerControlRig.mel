@@ -1,0 +1,475 @@
+global proc applyButtonPush()
+{
+	string $obj[]= `ls -sl`;
+	
+	if(size($obj) == 0) {
+	    print "Nothing Selected\n";
+	    return;
+	}
+	
+	for ($item in $obj)
+    {
+		string $array[] = stringToStringArray($item, "|");
+		//$array[size($array)-1];
+	}
+	
+	string $new[] ;
+    for ($item in $obj)
+    {
+		select -cl;
+        string $itemName = $item + "_Control";
+        string $itemNameOffset = $item + "_Control_Offset";
+		$radio2 = `radioCollection -q -sl constraintType`;
+        $data2 = `radioButton -q -label $radio2`;
+		
+		if($data2 == "Pole Vector") {
+			$itemName = $item + "_PVControl";
+            $itemNameOffset = $item + "_PVControl_Offset";
+        }
+		
+        $radio = `radioCollection -q -sl radObj`;
+        $data = `radioButton -q -label $radio`;
+        customWireShape $data $itemName;
+        group; xform -os -piv 0 0 0;
+        rename "group1" $itemNameOffset;
+        parent $itemNameOffset $item;
+        move -a -ls 0 0 0 $itemNameOffset;
+        rotate -a -os 0 0 0 $itemNameOffset;
+        parent -world $itemNameOffset;
+        scale -a -os `floatField -q -v XField` `floatField -q -v YField` `floatField -q -v ZField` $itemNameOffset;
+		
+		select -r $itemNameOffset;
+        makeIdentity -apply true -t 0 -r 0 -s 1 -n 0 -pn 1;
+		
+
+        if($data2 == "Parent") {
+             customParentConstraint($item, $itemName);
+        } else if($data2 == "Point") {
+            customPointConstraint($item, $itemName);
+        } else if($data2 == "Orient") {
+            customOrientConstraint($item, $itemName);
+        } else if($data2 == "Pole Vector") {
+            poleVectorConstraint -weight 1 $itemName $item;
+        }
+        $new[size($new)] = $itemName ;
+    }
+    select -r $new ;
+}
+
+global proc customWireShape(string $what, string $itemName)
+{
+    // wire arrow
+	switch ($what)
+	    {
+	    case "arrow":
+		$c = `curve -d 1 -p 0 0.6724194 0.4034517 -p 0 0 0.4034517 -p 0 0 0.6724194 -p 0 -0.4034517 0 -p 0 0 -0.6724194 -p 0 0 -0.4034517 -p 0 0.6724194 -0.4034517 -p 0 0.6724194 0.4034517 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -n $itemName` ;
+		break ;
+
+	    case "cross":
+		$c = `curve -d 1 -p 1 0 -1 -p 2 0 -1 -p 2 0 1 -p 1 0 1 -p 1 0 2 -p -1 0 2 -p -1 0 1 -p -2 0 1 -p -2 0 -1 -p -1 0 -1 -p -1 0 -2 -p 1 0 -2 -p 1 0 -1 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -n $itemName`;
+		break ;
+
+	    case "square":
+		$c = `curve -d 1 -p -1 0 1 -p 1 0 1 -p 1 0 -1 -p -1 0 -1 -p -1 0 1 -k 0 -k 1 -k 2 -k 3 -k 4 -n $itemName`;
+		break ;
+		
+	    case "cube":
+	    	$c = `curve -d 1 -p -0.5 0.5 0.5 -p 0.5 0.5 0.5 -p 0.5 0.5 -0.5 -p -0.5 0.5 -0.5 -p -0.5 0.5 0.5 -p -0.5 -0.5 0.5 -p -0.5 -0.5 -0.5 -p 0.5 -0.5 -0.5 -p 0.5 -0.5 0.5 -p -0.5 -0.5 0.5 -p 0.5 -0.5 0.5 -p 0.5 0.5 0.5 -p 0.5 0.5 -0.5 -p 0.5 -0.5 -0.5 -p -0.5 -0.5 -0.5 -p -0.5 0.5 -0.5 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -k 13 -k 14 -k 15 -n $itemName`;
+	    	break ;
+	    	
+	    case "orient":
+	        $c = `curve -d 3 -p 0.0959835 0.604001 -0.0987656 -p 0.500783 0.500458 -0.0987656 -p 0.751175 0.327886 -0.0987656 -p 0.751175 0.327886 -0.0987656 -p 0.751175 0.327886 -0.336638 -p 0.751175 0.327886 -0.336638 -p 1.001567 0 0 -p 1.001567 0 0 -p 0.751175 0.327886 0.336638 -p 0.751175 0.327886 0.336638 -p 0.751175 0.327886 0.0987656 -p 0.751175 0.327886 0.0987656 -p 0.500783 0.500458 0.0987656 -p 0.0959835 0.604001 0.0987656 -p 0.0959835 0.604001 0.0987656 -p 0.0959835 0.500458 0.500783 -p 0.0959835 0.327886 0.751175 -p 0.0959835 0.327886 0.751175 -p 0.336638 0.327886 0.751175 -p 0.336638 0.327886 0.751175 -p 0 0 1.001567 -p 0 0 1.001567 -p -0.336638 0.327886 0.751175 -p -0.336638 0.327886 0.751175 -p -0.0959835 0.327886 0.751175 -p -0.0959835 0.327886 0.751175 -p -0.0959835 0.500458 0.500783 -p -0.0959835 0.604001 0.0987656 -p -0.0959835 0.604001 0.0987656 -p -0.500783 0.500458 0.0987656 -p -0.751175 0.327886 0.0987656 -p -0.751175 0.327886 0.0987656 -p -0.751175 0.327886 0.336638 -p -0.751175 0.327886 0.336638 -p -1.001567 0 0 -p -1.001567 0 0 -p -0.751175 0.327886 -0.336638 -p -0.751175 0.327886 -0.336638 -p -0.751175 0.327886 -0.0987656 -p -0.751175 0.327886 -0.0987656 -p -0.500783 0.500458 -0.0987656 -p -0.0959835 0.604001 -0.0987656 -p -0.0959835 0.604001 -0.0987656 -p -0.0959835 0.500458 -0.500783 -p -0.0959835 0.327886 -0.751175 -p -0.0959835 0.327886 -0.751175 -p -0.336638 0.327886 -0.751175 -p -0.336638 0.327886 -0.751175 -p 0 0 -1.001567 -p 0 0 -1.001567 -p 0.336638 0.327886 -0.751175 -p 0.336638 0.327886 -0.751175 -p 0.0959835 0.327886 -0.751175 -p 0.0959835 0.327886 -0.751175 -p 0.0959835 0.500458 -0.500783 -p 0.0959835 0.604001 -0.0987656 -k 0 -k 0 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -k 13 -k 14 -k 15 -k 16 -k 17 -k 18 -k 19 -k 20 -k 21 -k 22 -k 23 -k 24 -k 25 -k 26 -k 27 -k 28 -k 29 -k 30 -k 31 -k 32 -k 33 -k 34 -k 35 -k 36 -k 37 -k 38 -k 39 -k 40 -k 41 -k 42 -k 43 -k 44 -k 45 -k 46 -k 47 -k 48 -k 49 -k 50 -k 51 -k 52 -k 53 -k 53 -k 53 -n $itemName` ;
+		break ;
+		
+	    case "circleY":
+	    	{
+	    	string $tc[] = `circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 1 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1  -n $itemName`;	
+		$c=$tc[0];
+		}
+		break ;
+		
+	    case "circleZ":
+		{
+		string $tc[] = `circle -c 0 0 0 -nr 0 0 1 -sw 360 -r 1 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n $itemName` ;
+		$c=$tc[0];
+		}
+		break ;
+
+	    case "circleX":
+		{
+		string $tc[] = `circle -c 0 0 0 -nr 1 0 0 -sw 360 -r 1 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n $itemName`;
+		$c=$tc[0];
+		}
+		break ;
+		
+	    case "null":
+	    case "group":
+	    case "grp":
+		$c = `group -em -n "grp#"`;
+		break ;
+		
+	    case "locator":
+	    case "loc":
+	    	{
+		string $tc[] = `spaceLocator -n "loc#"`;
+		$c=$tc[0];
+		}
+		break ;
+		
+	    case "bulb":
+		$c = `curve -d 3 -p -0.139471 -0.798108 0 -p -0.139471 -0.798108 0 -p -0.139471 -0.798108 0 -p -0.299681 -0.672294 0 -p -0.299681 -0.672294 0 -p -0.299681 -0.672294 0 -p -0.121956 -0.578864 0 -p -0.121956 -0.578864 0 -p -0.121956 -0.578864 0 -p -0.285304 -0.51952 0 -p -0.285304 -0.51952 0 -p -0.0744873 -0.442806 0 -p -0.0744873 -0.442806 0 -p -0.287769 -0.373086 0 -p -0.287769 -0.373086 0 -p -0.100386 -0.296549 0 -p -0.100386 -0.296549 0 -p -0.264344 -0.205725 0 -p -0.264344 -0.205725 0 -p -0.262544 -0.0993145 0 -p -0.262544 -0.0993145 0 -p -0.167051 -0.0613459 0 -p -0.167051 -0.0613459 0 -p -0.167051 -0.0613459 0 -p -0.166024 0.0163458 0 -p -0.157394 0.232092 0 -p -0.367902 0.680843 0 -p -0.96336 1.224522 0 -p -1.006509 1.992577 0 -p -0.316123 2.613925 0 -p 0.561786 2.548479 0 -p 1.094888 2.001207 0 -p 1.051638 1.166965 0 -p 0.436419 0.66543 0 -p 0.13283 0.232092 0 -p 0.15009 0.0163458 0 -p 0.15073 -0.046628 0 -p 0.15073 -0.046628 0 -p 0.270326 -0.0955798 0 -p 0.270326 -0.0955798 0 -p 0.267815 -0.208156 0 -p 0.267815 -0.208156 0 -p 0.0884224 -0.291145 0 -p 0.0884224 -0.291145 0 -p 0.292477 -0.366091 0 -p 0.292477 -0.366091 0 -p 0.0946189 -0.439723 0 -p 0.0946189 -0.439723 0 -p 0.306664 -0.508968 0 -p 0.306664 -0.508968 0 -p 0.112488 -0.57513 0 -p 0.112488 -0.57513 0 -p 0.323789 -0.674644 0 -p 0.323789 -0.674644 0 -p 0.152097 -0.794645 0 -p 0.152097 -0.794645 0 -p 0.152097 -0.794645 0 -p 0.106716 -0.907397 0 -p 0.0103741 -1.003739 0 -p -0.0919896 -0.907397 0 -p -0.139471 -0.798108 0 -p -0.139471 -0.798108 0 -k 0 -k 0 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -k 13 -k 14 -k 15 -k 16 -k 17 -k 18 -k 19 -k 20 -k 21 -k 22 -k 23 -k 24 -k 25 -k 26 -k 27 -k 28 -k 29 -k 30 -k 31 -k 32 -k 33 -k 34 -k 35 -k 36 -k 37 -k 38 -k 39 -k 40 -k 41 -k 42 -k 43 -k 44 -k 45 -k 46 -k 47 -k 48 -k 49 -k 50 -k 51 -k 52 -k 53 -k 54 -k 55 -k 56 -k 57 -k 58 -k 59 -k 59 -k 59 -n $itemName`;
+		break ;
+		
+	    case "sphere":
+		$c = `curve -d 1 -p 0 3 0 -p 0 2 -2 -p 0 0 -3 -p 0 -2 -2 -p 0 -3 0 -p 0 -2 2 -p 0 0 3 -p 0 2 2 -p 0 3 0 -p 2 2 0 -p 3 0 0 -p 2 -2 0 -p 0 -3 0 -p -2 -2 0 -p -3 0 0 -p -2 2 0 -p 0 3 0 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -k 13 -k 14 -k 15 -k 16 -n $itemName`;
+		break ;
+		
+	    case "plus":
+		$c = `curve -d 1 -p 0 1 0 -p 0 -1 0 -p 0 0 0 -p -1 0 0 -p 1 0 0 -p 0 0 0 -p 0 0 1 -p 0 0 -1 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -n $itemName`;
+		break ;
+
+	    }
+}
+
+global proc customParentConstraint(string $item, string $itemName) {
+	$translateCheckAllVal = `checkBox -query -value translateCheckAll`;
+	$rotateCheckAllVal =  `checkBox -query -value rotateCheckAll`;
+	
+	$translateCheckXVal = `checkBox -query -value translateCheckX`;
+	$translateCheckYVal = `checkBox -query -value translateCheckY`;
+	$translateCheckZVal = `checkBox -query -value translateCheckZ`;
+	
+	$rotateCheckXVal = `checkBox -query -value rotateCheckX`;
+	$rotateCheckYVal = `checkBox -query -value rotateCheckY`;
+	$rotateCheckZVal = `checkBox -query -value rotateCheckZ`;
+	
+	if($translateCheckAllVal) {
+		if($rotateCheckXVal && $rotateCheckYVal) {
+			parentConstraint -mo -weight 1 -skipRotate z $itemName $item;
+		} else if($rotateCheckXVal && $rotateCheckZVal) {
+			parentConstraint -mo -weight 1 -skipRotate y $itemName $item;
+		} else if($rotateCheckYVal && $rotateCheckZVal) {
+			parentConstraint -mo -weight 1 -skipRotate x $itemName $item;
+		} else if($rotateCheckXVal) {
+			parentConstraint -mo -weight 1 -skipRotate z -skipRotate y $itemName $item;
+		} else if($rotateCheckYVal) {
+			parentConstraint -mo -weight 1 -skipRotate z -skipRotate x $itemName $item;
+		} else if($rotateCheckZVal) {
+			parentConstraint -mo -weight 1 -skipRotate y -skipRotate x $itemName $item;
+		} else {
+			parentConstraint -mo -weight 1 $itemName $item;
+		}
+	} else {
+		$weightField = `floatSliderGrp -q -v weightField`;
+		
+		if($translateCheckXVal && $translateCheckYVal) {
+			if($rotateCheckXVal && $rotateCheckYVal) {
+				parentConstraint -mo -weight 1 -skipTranslate z -skipRotate z $itemName $item;
+			} else if($rotateCheckXVal && $rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate z -skipRotate y $itemName $item;
+			} else if($rotateCheckYVal && $rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate z -skipRotate x $itemName $item;
+			} else if($rotateCheckXVal) {
+				parentConstraint -mo -weight 1 -skipTranslate z -skipRotate z -skipRotate y $itemName $item;
+			} else if($rotateCheckYVal) {
+				parentConstraint -mo -weight 1 -skipTranslate z -skipRotate z -skipRotate x $itemName $item;
+			} else if($rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate z -skipRotate y -skipRotate x $itemName $item;
+			} else {
+				parentConstraint -mo -weight 1 -skipTranslate z $itemName $item;
+			}
+		} else if($translateCheckXVal && $translateCheckZVal) {
+			if($rotateCheckXVal && $rotateCheckYVal) {
+				parentConstraint -mo -weight 1 -skipTranslate y -skipRotate z $itemName $item;
+			} else if($rotateCheckXVal && $rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate y -skipRotate y $itemName $item;
+			} else if($rotateCheckYVal && $rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate y -skipRotate x $itemName $item;
+			} else if($rotateCheckXVal) {
+				parentConstraint -mo -weight 1 -skipTranslate y -skipRotate z -skipRotate y $itemName $item;
+			} else if($rotateCheckYVal) {
+				parentConstraint -mo -weight 1 -skipTranslate y -skipRotate z -skipRotate x $itemName $item;
+			} else if($rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate y -skipRotate y -skipRotate x $itemName $item;
+			} else {
+				parentConstraint -mo -weight 1 -skipTranslate y $itemName $item;
+			}
+		} else if($translateCheckYVal && $translateCheckZVal) {
+			if($rotateCheckXVal && $rotateCheckYVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipRotate z $itemName $item;
+			} else if($rotateCheckXVal && $rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipRotate y $itemName $item;
+			} else if($rotateCheckYVal && $rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipRotate x $itemName $item;
+			} else if($rotateCheckXVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipRotate z -skipRotate y $itemName $item;
+			} else if($rotateCheckYVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipRotate z -skipRotate x $itemName $item;
+			} else if($rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipRotate y -skipRotate x $itemName $item;
+			} else {
+				parentConstraint -mo -weight 1 -skipTranslate x $itemName $item;
+			}
+		} else if($translateCheckXVal) {
+			if($rotateCheckXVal && $rotateCheckYVal) {
+				parentConstraint -mo -weight 1 -skipTranslate y -skipTranslate z -skipRotate z $itemName $item;
+			} else if($rotateCheckXVal && $rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate y -skipTranslate z -skipRotate y $itemName $item;
+			} else if($rotateCheckYVal && $rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate y -skipTranslate z -skipRotate x $itemName $item;
+			} else if($rotateCheckXVal) {
+				parentConstraint -mo -weight 1 -skipTranslate y -skipTranslate z -skipRotate z -skipRotate y $itemName $item;
+			} else if($rotateCheckYVal) {
+				parentConstraint -mo -weight 1 -skipTranslate y -skipTranslate z -skipRotate z -skipRotate x $itemName $item;
+			} else if($rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate y -skipTranslate z -skipRotate y -skipRotate x $itemName $item;
+			} else {
+				parentConstraint -mo -weight 1 -skipTranslate y -skipTranslate z $itemName $item;
+			}
+		} else if($translateCheckYVal) {
+			if($rotateCheckXVal && $rotateCheckYVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipTranslate z -skipRotate z $itemName $item;
+			} else if($rotateCheckXVal && $rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipTranslate z -skipRotate y $itemName $item;
+			} else if($rotateCheckYVal && $rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipTranslate z -skipRotate x $itemName $item;
+			} else if($rotateCheckXVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipTranslate z -skipRotate z -skipRotate y $itemName $item;
+			} else if($rotateCheckYVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipTranslate z -skipRotate z -skipRotate x $itemName $item;
+			} else if($rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipTranslate z -skipRotate y -skipRotate x $itemName $item;
+			} else {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipTranslate z $itemName $item;
+			}
+		} else if($translateCheckZVal) {
+			if($rotateCheckXVal && $rotateCheckYVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipTranslate y -skipRotate z $itemName $item;
+			} else if($rotateCheckXVal && $rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipTranslate y -skipRotate y $itemName $item;
+			} else if($rotateCheckYVal && $rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipTranslate y -skipRotate x $itemName $item;
+			} else if($rotateCheckXVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipTranslate y -skipRotate z -skipRotate y $itemName $item;
+			} else if($rotateCheckYVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipTranslate y -skipRotate z -skipRotate x $itemName $item;
+			} else if($rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipTranslate y -skipRotate y -skipRotate x $itemName $item;
+			} else {
+				parentConstraint -mo -weight 1 -skipTranslate x -skipTranslate y $itemName $item;
+			}
+		} else {
+			if($rotateCheckXVal && $rotateCheckYVal) {
+				parentConstraint -mo -weight 1 -skipRotate z $itemName $item;
+			} else if($rotateCheckXVal && $rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipRotate y $itemName $item;
+			} else if($rotateCheckYVal && $rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipRotate x $itemName $item;
+			} else if($rotateCheckXVal) {
+				parentConstraint -mo -weight 1 -skipRotate z -skipRotate y $itemName $item;
+			} else if($rotateCheckYVal) {
+				parentConstraint -mo -weight 1  -skipRotate z -skipRotate x $itemName $item;
+			} else if($rotateCheckZVal) {
+				parentConstraint -mo -weight 1 -skipRotate y -skipRotate x $itemName $item;
+			} else {
+				parentConstraint -mo -weight 1 $itemName $item;
+			}
+		}
+	}
+}
+
+global proc customPointConstraint(string $item, string $itemName) {
+	$pointCheckAllVal = `checkBox -query -value pointCheckAll`;
+	if($pointCheckAllVal) {
+		pointConstraint -offset 0 0 0 -weight 1 $itemName $item;
+	} else {
+		$pointCheckXVal = `checkBox -query -value pointCheckX`;
+		$pointCheckYVal = `checkBox -query -value pointCheckY`;
+		$pointCheckZVal = `checkBox -query -value pointCheckZ`;
+		$weightField = `floatSliderGrp -q -v weightField`;
+		
+		if($pointCheckXVal && $pointCheckYVal) {
+			pointConstraint -offset 0 0 0 -skip z -weight $weightField $itemName $item;
+		} else if($pointCheckXVal && $pointCheckZVal) {
+			pointConstraint -offset 0 0 0 -skip y -weight $weightField $itemName $item;
+		} else if($pointCheckYVal && $pointCheckZVal) {
+			pointConstraint -offset 0 0 0 -skip x -weight $weightField $itemName $item;
+		} else if($pointCheckXVal) {
+			pointConstraint -offset 0 0 0 -skip z -skip y -weight $weightField $itemName $item;
+		} else if($pointCheckYVal) {
+			pointConstraint -offset 0 0 0 -skip x -skip z -weight $weightField $itemName $item;
+		} else if($pointCheckZVal) {
+			pointConstraint -offset 0 0 0 -skip y -skip x -weight $weightField $itemName $item;
+		} else {
+			pointConstraint -offset 0 0 0 -weight 1 $itemName $item;
+		}
+	}
+}
+
+global proc customOrientConstraint(string $item, string $itemName) {
+	$orientCheckAllVal = `checkBox -query -value orientCheckAll`;
+	$weightField = `floatSliderGrp -q -v weightField`;
+	if($orientCheckAllVal) {
+		orientConstraint -offset 0 0 0 -weight $weightField $itemName $item;
+	} else {
+		$orientCheckXVal = `checkBox -query -value orientCheckX`;
+		$orientCheckYVal = `checkBox -query -value orientCheckY`;
+		$orientCheckZVal = `checkBox -query -value orientCheckZ`;
+		
+		if($orientCheckXVal && $orientCheckYVal) {
+			orientConstraint -offset 0 0 0 -skip z -weight $weightField $itemName $item;
+		} else if($orientCheckXVal && $orientCheckZVal) {
+			orientConstraint -offset 0 0 0 -skip y -weight $weightField $itemName $item;
+		} else if($orientCheckYVal && $orientCheckZVal) {
+			orientConstraint -offset 0 0 0 -skip x -weight $weightField $itemName $item;
+		} else if($orientCheckXVal) {
+			orientConstraint -offset 0 0 0 -skip z -skip y -weight $weightField $itemName $item;
+		} else if($orientCheckYVal) {
+			orientConstraint -offset 0 0 0 -skip x -skip z -weight $weightField $itemName $item;
+		} else if($orientCheckZVal) {
+			orientConstraint -offset 0 0 0 -skip y -skip x -weight $weightField $itemName $item;
+		} else {
+			orientConstraint -offset 0 0 0 -weight 1 $itemName $item;
+		}
+	}
+}
+
+global proc mainWindow() {
+	if (`window -exists chandlerControlRig`) deleteUI chandlerControlRig;
+	//if (`windowPref -exists chandlerControlRig`) windowPref -remove chandlerControlRig;
+	window -title "Chandler Control Rig" -widthHeight 400 551 chandlerControlRig;
+		 columnLayout -adjustableColumn true;
+			   gridLayout -numberOfColumns 5 -cellWidthHeight 80 20; 
+						radioCollection radObj;
+						radioButton -label "square" -sl;
+						radioButton -label "cube";
+						radioButton -label "circle";
+						radioButton -label "sphere";
+						radioButton -label "arrow";
+						radioButton -label "cross";
+						radioButton -label "orient";
+						radioButton -label "circleY";
+						radioButton -label "circleZ";
+						radioButton -label "circleX";
+						radioButton -label "group";
+						radioButton -label "locator";
+						radioButton -label "bulb";
+						radioButton -label "plus";
+						radioButton -label "joint";
+			   setParent ..;
+			   
+			   separator -height 10 -style "out";
+			   separator -height 10 -style "in";
+			   
+			   rowLayout -numberOfColumns 4 -cw4 50 50 50 50;
+				   text -label "Scale:" -al "center";
+				   floatField -v 10 -w 75 XField;
+				   floatField -v 5 -w 75 YField;
+				   floatField -v 10 -w 75 ZField;
+			  setParent ..;
+
+			   separator -height 10 -style "out";
+			   separator -height 10 -style "in";
+
+			  gridLayout -numberOfColumns 4 -cellWidthHeight 80 20; 
+				   radioCollection constraintType;
+				   radioButton -label "Parent" -sl;
+				   radioButton -label "Point";
+				   radioButton -label "Orient";
+				   radioButton -label "Pole Vector";
+			   setParent ..;
+
+			   separator -height 5 -style "none";
+
+			   frameLayout -label "Parent" -collapsable true;
+				   separator -height 5 -style "none";
+				   rowLayout -nc 2 -cw2 50 50;
+					   text -label "Translate:";
+					   rowLayout -nc 1 -cw1 75;
+						   checkBox -label "All" -v true translateCheckAll;
+					   setParent ..;
+				   setParent ..;
+				   rowLayout -nc 2 -cw2 50 50;
+					   text -label "";
+					   rowLayout -nc 3 -cw3 75 75 75;
+						   checkBox -label "X" translateCheckX;
+						   checkBox -label "Y" translateCheckY;
+						   checkBox -label "Z" translateCheckZ;
+					   setParent ..;
+				   setParent ..;
+				   
+				   separator -height 6 -style "out";
+				   separator -height 6 -style "in";
+				   
+				   rowLayout -nc 2 -cw2 50 50;
+					   text -label "Rotate:";
+					   rowLayout -nc 1 -cw1 75;
+						   checkBox -label "All" -v true rotateCheckAll;
+					   setParent ..;
+				   setParent ..;
+				   rowLayout -nc 2 -cw2 50 50;
+					   text -label "";
+					   rowLayout -nc 3 -cw3 75 75 75;
+						   checkBox -label "X" rotateCheckX;
+						   checkBox -label "Y" rotateCheckY;
+						   checkBox -label "Z" rotateCheckZ;
+					   setParent ..;
+				   setParent ..;
+			   setParent ..;
+			   
+			   separator -height 5 -style "none";
+			   
+			   frameLayout -label "Point" -collapsable true;
+				   separator -height 5 -style "none";
+				   rowLayout -nc 2 -cw2 50 50;
+					   text -label "Translate:";
+					   rowLayout -nc 1 -cw1 75;
+						   checkBox -label "All" -v true pointCheckAll;
+					   setParent ..;
+				   setParent ..;
+				   rowLayout -nc 2 -cw2 50 50;
+					   text -label "";
+					   rowLayout -nc 3 -cw3 75 75 75;
+						   checkBox -label "X" pointCheckX;
+						   checkBox -label "Y" pointCheckY;
+						   checkBox -label "Z" pointCheckZ;
+					   setParent ..;
+				   setParent ..;
+			   setParent ..;
+			   
+			   separator -height 5 -style "none";
+			   
+			   frameLayout -label "Orient" -collapsable true;
+				   separator -height 5 -style "none";
+				   rowLayout -nc 2 -cw2 50 50;
+					   text -label "Translate:";
+					   rowLayout -nc 1 -cw1 75;
+						   checkBox -label "All" -v true orientCheckAll;
+					   setParent ..;
+				   setParent ..;
+				   rowLayout -nc 2 -cw2 50 50;
+					   text -label "";
+					   rowLayout -nc 3 -cw3 75 75 75;
+						   checkBox -label "X" orientCheckX;
+						   checkBox -label "Y" orientCheckY;
+						   checkBox -label "Z" orientCheckZ;
+					   setParent ..;
+				   setParent ..;
+				   
+				   separator -height 6 -style "out";
+				   separator -height 6 -style "in";
+				   
+				   rowLayout -nc 2 -cw2 50 500;
+					   text -label "Weight:";
+					   floatSliderGrp -field true
+						-minValue 0 -maxValue 1 -value 1 -pre 4 weightField;
+				   setParent ..;
+			  setParent ..;
+			  
+			  separator -height 10 -style "out";
+			  separator -height 10 -style "in";
+			  
+			  button -label "Apply" -command "applyButtonPush()";
+		 setParent ..;
+	showWindow chandlerControlRig;
+}

@@ -1,0 +1,23 @@
+global proc mainWindow() {
+	if (`window -exists chandlerAbout`) deleteUI chandlerAbout;
+	//if (`windowPref -exists chandlerAbout`) windowPref -remove chandlerAbout;
+	window -title "About Page" -widthHeight 400 551 chandlerAbout;
+	
+	string $form = `formLayout -numberOfDivisions 100`;
+	string $text = `text`;
+	
+	formLayout -edit
+		-attachForm     $text     "top"    5
+		-attachForm     $text     "left"   5
+		-attachForm     $text     "right"  5
+		-attachForm  	$text     "bottom" 5
+	$form;
+	
+	text -edit
+		-label "Test\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nTest"
+		-align "left"
+	$text;
+	
+	showWindow chandlerAbout;
+}
+
